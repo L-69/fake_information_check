@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虚假信息检测系统</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1a73e8;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-area {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .submit-btn {
+            background-color: #1a73e8;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 0 auto;
+            transition: background-color 0.3s;
+        }
+        .submit-btn:hover {
+            background-color: #135cbd;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result-area {
+            margin-top: 30px;
+            display: none;
+        }
+        .result-box {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .section-title {
+            font-weight: bold;
+            color: #1a73e8;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .meter {
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            position: relative;
+            margin: 10px 0;
+        }
+        .meter-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease-in-out;
+        }
+        .meter-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            line-height: 20px;
+        }
+        .entity-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .entity-tag {
+            background-color: #e3f2fd;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+            border: 1px solid #bbdefb;
+        }
+        .credential-score {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .tips-list {
+            background-color: #fff3e0;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>虚假信息检测系统</h1>
+        
+        <div class="input-area">
+            <textarea id="text-input" placeholder="请在此输入需要分析的文本内容..."></textarea>
+            <button id="submit-btn" class="submit-btn">开始分析</button>
+        </div>
+        
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>正在分析中，请稍候...</p>
+        </div>
+        
+        <div id="result-area" class="result-area">
+            <h2>分析结果</h2>
+            
+            <div class="result-box">
+                <!-- 原始文本解析层 -->
+                <div class="section">
+                    <div class="section-title">一、原始文本解析</div>
+                    <div id="text-content"></div>
+                </div>
+                
+                <!-- 语义特征提取层 -->
+                <div class="section">
+                    <div class="section-title">二、语义特征分析</div>
+                    
+                    <div>
+                        <strong>情感极性：</strong>
+                        <div class="meter">
+                            <div id="sentiment-meter" class="meter-fill" style="width: 0%; background-color: #64b5f6;"></div>
+                            <div class="meter-text"><span id="sentiment-value">0</span>/10</div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <strong>语义角色：</strong>
+                        <div id="semantic-roles"></div>
+                    </div>
+                    
+                    <div>
+                        <strong>实体关系：</strong>
+                        <div id="entity-relations" class="entity-list"></div>
+                    </div>
+                    
+                    <div>
+                        <strong>立场倾向：</strong>
+                        <div id="stance"></div>
+                    </div>
+                </div>
+                
+                <!-- 传播特征分析层 -->
+                <div class="section">
+                    <div class="section-title">三、传播特征分析</div>
+                    
+                    <div>
+                        <strong>扩散可能性：</strong>
+                        <div id="diffusion"></div>
+                    </div>
+                    
+                    <div>
+                        <strong>传播速率潜力：</strong>
+                        <div id="spread-rate"></div>
+                    </div>
+                    
+                    <div>
+                        <strong>用户参与可能性：</strong>
+                        <div id="user-engagement"></div>
+                    </div>
+                </div>
+                
+                <!-- 虚假信息评估 -->
+                <div class="section">
+                    <div class="section-title">四、可信度评估</div>
+                    
+                    <div class="credential-score">
+                        可信度得分：<span id="credibility-score">0</span>/100
+                    </div>
+                    
+                    <div>
+                        <strong>虚假信息特征：</strong>
+                        <div id="fake-features"></div>
+                    </div>
+                    
+                    <div>
+                        <strong>建议：</strong>
+                        <div id="suggestions" class="tips-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('submit-btn').addEventListener('click', function() {
+            const text = document.getElementById('text-input').value.trim();
+            
+            if (!text) {
+                alert('请输入需要分析的文本');
+                return;
+            }
+            
+            // 显示加载状态
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result-area').style.display = 'none';
+            
+            // 发送请求到后端进行分析
+            const formData = new FormData();
+            formData.append('text', text);
+            
+            fetch('/analyze', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 隐藏加载状态
+                document.getElementById('loading').style.display = 'none';
+                
+                // 检查是否有错误
+                if (data.error) {
+                    // 显示错误信息
+                    document.getElementById('result-area').style.display = 'block';
+                    document.getElementById('text-content').innerHTML = 
+                        `<div style="color: red; font-weight: bold;">错误: ${data.error}</div>` +
+                        (data.details ? `<pre style="background-color: #f8f8f8; padding: 10px; border-radius: 5px;">${JSON.stringify(data.details, null, 2)}</pre>` : '');
+                    return;
+                }
+                
+                // 解析和渲染结果
+                renderResults(data);
+                
+                // 显示结果区域
+                document.getElementById('result-area').style.display = 'block';
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                alert('分析过程中出错: ' + error.message);
+                console.error('分析错误:', error);
+            });
+        });
+        
+        function renderResults(data) {
+            // 处理原始响应可能是字符串的情况
+            if (data.raw_result) {
+                document.getElementById('text-content').innerHTML = 
+                    '<p>AI分析无法解析为结构化数据，原始结果如下：</p>' + 
+                    '<pre style="background-color: #f8f8f8; padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto;">' + data.raw_result + '</pre>';
+            }
+            
+            // 原始文本解析
+            if (data["原始文本解析层"] || data.textAnalysis) {
+                const textAnalysis = data["原始文本解析层"] || data.textAnalysis;
+                let textContent = '';
+                
+                if (textAnalysis.文本内容 || textAnalysis.content) {
+                    textContent += '<p><strong>文本内容：</strong><br>' + 
+                                  (textAnalysis.文本内容 || textAnalysis.content) + '</p>';
+                }
+                
+                if (textAnalysis.元数据 || textAnalysis.metadata) {
+                    const metadata = textAnalysis.元数据 || textAnalysis.metadata;
+                    textContent += '<p><strong>元数据：</strong><br>';
+                    if (typeof metadata === 'string') {
+                        textContent += metadata;
+                    } else {
+                        for (const key in metadata) {
+                            textContent += key + ': ' + metadata[key] + '<br>';
+                        }
+                    }
+                    textContent += '</p>';
+                }
+                
+                if (textAnalysis.多模态数据 || textAnalysis.multimodalData) {
+                    textContent += '<p><strong>多模态数据：</strong><br>' + 
+                                  (textAnalysis.多模态数据 || textAnalysis.multimodalData) + '</p>';
+                }
+                
+                document.getElementById('text-content').innerHTML = textContent || '无文本分析数据';
+            }
+            
+            // 语义特征提取
+            if (data["语义特征提取层"] || data.semanticFeatures) {
+                const semantics = data["语义特征提取层"] || data.semanticFeatures;
+                
+                // 情感极性
+                const sentiment = semantics.情感极性 || semantics.sentimentPolarity || 5;
+                const sentimentValue = typeof sentiment === 'object' ? sentiment.value || 5 : (typeof sentiment === 'number' ? sentiment : 5);
+                document.getElementById('sentiment-value').textContent = sentimentValue;
+                document.getElementById('sentiment-meter').style.width = (sentimentValue * 10) + '%';
+                
+                // 语义角色
+                const roles = semantics.语义角色标注 || semantics.semanticRoles;
+                let rolesHtml = '';
+                if (typeof roles === 'string') {
+                    rolesHtml = roles;
+                } else if (roles) {
+                    for (const key in roles) {
+                        rolesHtml += '<div>' + key + ': ' + roles[key] + '</div>';
+                    }
+                }
+                document.getElementById('semantic-roles').innerHTML = rolesHtml || '无数据';
+                
+                // 实体关系
+                const entities = semantics.实体关系图谱 || semantics.entityRelations;
+                let entitiesHtml = '';
+                if (typeof entities === 'string') {
+                    entitiesHtml = entities;
+                } else if (Array.isArray(entities)) {
+                    entities.forEach(entity => {
+                        entitiesHtml += '<span class="entity-tag">' + entity + '</span>';
+                    });
+                } else if (entities) {
+                    for (const key in entities) {
+                        entitiesHtml += '<span class="entity-tag">' + key + ': ' + entities[key] + '</span>';
+                    }
+                }
+                document.getElementById('entity-relations').innerHTML = entitiesHtml || '无实体关系';
+                
+                // 立场检测
+                const stance = semantics.立场检测 || semantics.stanceDetection;
+                document.getElementById('stance').innerHTML = stance || '无明显立场';
+            }
+            
+            // 传播特征分析
+            if (data["传播特征分析层"] || data.propagationFeatures) {
+                const propagation = data["传播特征分析层"] || data.propagationFeatures;
+                
+                document.getElementById('diffusion').innerHTML = propagation.扩散路径 || propagation.扩散可能性 || 
+                                                              propagation.diffusionPath || propagation.diffusionPotential || '无数据';
+                document.getElementById('spread-rate').innerHTML = propagation.传播速率 || propagation.传播速率潜力 || 
+                                                                propagation.spreadRate || propagation.spreadRatePotential || '无数据';
+                document.getElementById('user-engagement').innerHTML = propagation.用户参与模式 || propagation.用户参与可能性 || 
+                                                                    propagation.userEngagement || propagation.userEngagementPotential || '无数据';
+            }
+            
+            // 虚假信息评估
+            if (data["虚假信息评估"] || data.credibilityAssessment) {
+                const assessment = data["虚假信息评估"] || data.credibilityAssessment;
+                
+                // 可信度评分
+                const score = assessment.可信度评分 || assessment.credibilityScore || 0;
+                document.getElementById('credibility-score').textContent = score;
+                
+                // 虚假信息特征
+                const fakeFeatures = assessment.虚假信息特征 || assessment.fakeNewsFeatures;
+                let featuresHtml = '';
+                if (typeof fakeFeatures === 'string') {
+                    featuresHtml = fakeFeatures;
+                } else if (Array.isArray(fakeFeatures)) {
+                    featuresHtml += '<ul>';
+                    fakeFeatures.forEach(feature => {
+                        featuresHtml += '<li>' + feature + '</li>';
+                    });
+                    featuresHtml += '</ul>';
+                }
+                document.getElementById('fake-features').innerHTML = featuresHtml || '未检测到明显虚假信息特征';
+                
+                // 建议
+                const suggestions = assessment.建议 || assessment.suggestions;
+                let suggestionsHtml = '';
+                if (typeof suggestions === 'string') {
+                    suggestionsHtml = suggestions;
+                } else if (Array.isArray(suggestions)) {
+                    suggestionsHtml += '<ul>';
+                    suggestions.forEach(suggestion => {
+                        suggestionsHtml += '<li>' + suggestion + '</li>';
+                    });
+                    suggestionsHtml += '</ul>';
+                }
+                document.getElementById('suggestions').innerHTML = suggestionsHtml || '无建议';
+            }
+        }
+    </script>
+</body>
+</html>

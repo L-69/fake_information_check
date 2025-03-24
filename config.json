@@ -1,0 +1,7 @@
+{
+    "channel_type": "deepseek",
+    "ai_model": "deepseek-chat",
+    "api_key": "sk-69b811f77ee8417184fcc6c21",
+    "timeout": 30,
+    "prompt": "请执行虚假信息全维度检测分析，要求：\n\n```markdown\n### 输入规范\n1. 输入格式：Markdown文本（含元数据头）\n2. 必含字段：\n   - 发布时间（ISO 8601格式）\n   - 传播平台（微博/微信/抖音）\n   - 原始作者ID\n\n### 处理流程\n1. 三级文本解析：\n   a) 原始层：保留特殊符号※★等\n   b) 语义层：使用RoBERTa-zh提取\n      - 情感向量（polarity, intensity）\n      - 实体关系三元组\n   c) 传播层：计算霍克斯过程参数α=0.32\n\n2. 异常检测：\n   - 语义冲突度 > 0.75\n   - 传播加速度阈值 3σ\n   - 机器人账号占比检测\n\n### 输出规范\n1. JSON结构包含：\n   - system_metadata（处理ID/时间戳）\n   - entity_graph（动态图谱）\n   - propagation_metrics（Gini系数）\n2. 数值精度：浮点数保留3位\n3. 异常标记：FI-ALERT-003标准\n```\n\n返回完整分析报告，包含原始数据、特征向量、传播模式三维数据。"
+}
